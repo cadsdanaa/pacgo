@@ -63,8 +63,15 @@ func main() {
 		MoveGhosts()
 
 		for _, ghost := range ghosts {
-			if Player == *ghost {
-				Lives = 0
+			if Player.row == ghost.row && Player.col == ghost.col {
+				Lives -= 1
+				if Lives != 0 {
+					moveCursor(Player.row, Player.col)
+					fmt.Print(Cfg.Death)
+					time.Sleep(2000 * time.Millisecond)
+					moveCursor(len(maze)+2, 0)
+					Player.row, Player.col = Player.startRow, Player.startCol
+				}
 			}
 		}
 

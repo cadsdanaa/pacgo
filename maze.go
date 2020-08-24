@@ -9,15 +9,17 @@ import (
 )
 
 type sprite struct {
-	row int
-	col int
+	row      int
+	col      int
+	startRow int
+	startCol int
 }
 
 var maze []string
 var ghosts []*sprite
 var score int
 var Player sprite
-var Lives = 1
+var Lives = 3
 var Dots int
 
 func LoadMaze(file string) error {
@@ -41,9 +43,9 @@ func loadSprites() {
 		for col, character := range line {
 			switch character {
 			case 'P':
-				Player = sprite{row, col}
+				Player = sprite{row, col, row, col}
 			case 'G':
-				ghosts = append(ghosts, &sprite{row, col})
+				ghosts = append(ghosts, &sprite{row, col, row, col})
 			case '.':
 				Dots++
 			}
@@ -77,7 +79,7 @@ func PrintMaze() {
 	}
 
 	moveCursor(len(maze)+1, 0)
-	fmt.Println("Score: ", score, "\tLives: ", Lives)
+	fmt.Println("Score: ", score, "\tLives: ", getLivesIcon())
 }
 
 func MoveGhosts() {
@@ -104,4 +106,12 @@ func moveCursor(row, col int) {
 	} else {
 		simpleansi.MoveCursor(row, col)
 	}
+}
+
+func getLivesIcon() string {
+	var currentLives = ""
+	for i := 0; i < Lives; i++ {
+		currentLives += Cfg.Player
+	}
+	return currentLives
 }
