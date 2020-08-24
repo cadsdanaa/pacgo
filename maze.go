@@ -58,23 +58,25 @@ func PrintMaze() {
 		for _, character := range line {
 			switch character {
 			case '#':
-				fallthrough
+				fmt.Print(simpleansi.WithBlueBackground(Cfg.Wall))
 			case '.':
-				fmt.Printf("%c", character)
+				fmt.Print(Cfg.Dot)
+			case 'X':
+				fmt.Print(Cfg.Pill)
 			default:
-				fmt.Print(" ")
+				fmt.Print(Cfg.Space)
 			}
 		}
 		fmt.Println()
 	}
-	simpleansi.MoveCursor(Player.row, Player.col)
-	fmt.Print("P")
+	moveCursor(Player.row, Player.col)
+	fmt.Print(Cfg.Player)
 	for _, ghost := range ghosts {
-		simpleansi.MoveCursor(ghost.row, ghost.col)
-		fmt.Print("G")
+		moveCursor(ghost.row, ghost.col)
+		fmt.Print(Cfg.Ghost)
 	}
 
-	simpleansi.MoveCursor(len(maze)+1, 0)
+	moveCursor(len(maze)+1, 0)
 	fmt.Println("Score: ", score, "\tLives: ", Lives)
 }
 
@@ -94,4 +96,12 @@ func ghostMovement() string {
 		3: "RIGHT",
 	}
 	return move[direction]
+}
+
+func moveCursor(row, col int) {
+	if Cfg.UseEmoji {
+		simpleansi.MoveCursor(row, col*2)
+	} else {
+		simpleansi.MoveCursor(row, col)
+	}
 }

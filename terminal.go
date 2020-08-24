@@ -55,11 +55,20 @@ func ReadInput() (string, error) {
 
 func MovePlayer(direction string) {
 	Player.row, Player.col = makeMove(Player.row, Player.col, direction)
+
+	removeDot := func(row, col int) {
+		maze[Player.row] = maze[Player.row][0:Player.col] + " " + maze[Player.row][Player.col+1:]
+	}
+
 	switch maze[Player.row][Player.col] {
 	case '.':
 		Dots--
 		score++
-		maze[Player.row] = maze[Player.row][0:Player.col] + " " + maze[Player.row][Player.col+1:]
+		removeDot(Player.row, Player.col)
+	case 'X':
+		Dots--
+		score += 10
+		removeDot(Player.row, Player.col)
 	}
 }
 
