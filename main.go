@@ -20,8 +20,8 @@ func main() {
 		for {
 			input, err := ReadInput()
 			if err != nil {
-				log.Fatal("Failed to read input")
 				ch <- "ESC"
+				log.Fatal("Failed to read input")
 			}
 			ch <- input
 		}
