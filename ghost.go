@@ -15,6 +15,7 @@ type ghost struct {
 }
 
 func MoveGhosts() {
+	handleGhostContact()
 	for _, ghost := range ghosts {
 		direction := ghostMovement()
 		ghost.position.row, ghost.position.col, _ = makeMove(ghost.position.row, ghost.position.col, direction)
