@@ -27,6 +27,7 @@ var previousDirection string
 func main() {
 	Initialize()
 	defer Cleanup()
+	InitSoundBoard()
 
 	err := LoadMaze("resources/maze.txt")
 	if err != nil {
@@ -94,6 +95,7 @@ func main() {
 
 func handleNormalGhostContact() {
 	Lives -= 1
+	go playDeathSound()
 	if Lives != 0 {
 		moveCursor(Player.row, Player.col)
 		fmt.Print(Cfg.Death)

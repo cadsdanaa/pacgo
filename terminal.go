@@ -77,10 +77,12 @@ func MovePlayer(direction string) bool {
 		Dots--
 		score++
 		removeDot(Player.row, Player.col)
+		go playPillSound()
 	case 'X':
 		Dots--
 		score += 10
 		removeDot(Player.row, Player.col)
+		go playPillSound()
 		go processPill()
 	}
 	return validMove
