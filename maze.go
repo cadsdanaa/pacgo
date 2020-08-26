@@ -6,6 +6,7 @@ import (
 	"github.com/danicat/simpleansi"
 	"math/rand"
 	"os"
+	"time"
 )
 
 type sprite struct {
@@ -15,8 +16,20 @@ type sprite struct {
 	startCol int
 }
 
+type GhostStatus string
+
+const (
+	Normal GhostStatus = "Normal"
+	Blue   GhostStatus = "Blue"
+)
+
+type ghost struct {
+	position sprite
+	status   GhostStatus
+}
+
 var maze []string
-var ghosts []*sprite
+var ghosts []*ghost
 var score int
 var Player sprite
 var Lives = 3
@@ -45,11 +58,10 @@ func loadSprites() {
 			case 'P':
 				Player = sprite{row, col, row, col}
 			case 'G':
-				ghosts = append(ghosts, &sprite{row, col, row, col})
-			case '.':
+				ghosts = append(ghosts, &ghost{sprite{row, col, row, col}, Normal})
+			case '.', 'X':
 				Dots++
 			}
-
 		}
 	}
 }
@@ -74,18 +86,22 @@ func PrintMaze() {
 	moveCursor(Player.row, Player.col)
 	fmt.Print(Cfg.Player)
 	for _, ghost := range ghosts {
-		moveCursor(ghost.row, ghost.col)
-		fmt.Print(Cfg.Ghost)
+		moveCursor(ghost.position.row, ghost.position.col)
+		if ghost.status == Normal {
+			fmt.Print(Cfg.Ghost)
+		} else {
+			fmt.Print(Cfg.BlueGhost)
+		}
 	}
 
 	moveCursor(len(maze)+1, 0)
-	fmt.Println("Score: ", score, "\tLives: ", getLivesIcon())
+	fmt.Println("Score: ", score, "\tLives: ", getLivesIcon(), "\tPower Pill Time: ", pillTimer.timeLeft().Truncate(time.Second/10))
 }
 
 func MoveGhosts() {
 	for _, ghost := range ghosts {
 		direction := ghostMovement()
-		ghost.row, ghost.col = makeMove(ghost.row, ghost.col, direction)
+		ghost.position.row, ghost.position.col, _ = makeMove(ghost.position.row, ghost.position.col, direction)
 	}
 }
 

@@ -4,7 +4,18 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sync"
+	"time"
 )
+
+type PillTimer struct {
+	timer *time.Timer
+	end   time.Time
+}
+
+var pillTimer PillTimer
+var pillMutex sync.Mutex
+var ghostStatusMutex sync.RWMutex
 
 func Initialize() {
 	cbTerm := exec.Command("stty", "cbreak", "-echo")
@@ -53,8 +64,9 @@ func ReadInput() (string, error) {
 	return "", nil
 }
 
-func MovePlayer(direction string) {
-	Player.row, Player.col = makeMove(Player.row, Player.col, direction)
+func MovePlayer(direction string) bool {
+	var validMove bool
+	Player.row, Player.col, validMove = makeMove(Player.row, Player.col, direction)
 
 	removeDot := func(row, col int) {
 		maze[Player.row] = maze[Player.row][0:Player.col] + " " + maze[Player.row][Player.col+1:]
@@ -69,10 +81,49 @@ func MovePlayer(direction string) {
 		Dots--
 		score += 10
 		removeDot(Player.row, Player.col)
+		go processPill()
+	}
+	return validMove
+}
+
+func processPill() {
+	pillMutex.Lock()
+	updateGhosts(ghosts, Blue)
+	pillTime := time.Second * Cfg.PillDurationSeconds
+	if pillTimer.timeLeft() > 0 {
+		pillTimer.timer.Stop()
+		pillTime += pillTimer.timeLeft()
+	}
+	pillTimer = PillTimer{
+		time.NewTimer(pillTime),
+		time.Now().Add(pillTime),
+	}
+	pillMutex.Unlock()
+	<-pillTimer.timer.C
+	pillMutex.Lock()
+	pillTimer.timer.Stop()
+	updateGhosts(ghosts, Normal)
+	pillMutex.Unlock()
+}
+
+func updateGhosts(ghosts []*ghost, status GhostStatus) {
+	ghostStatusMutex.Lock()
+	defer ghostStatusMutex.Unlock()
+	for _, ghost := range ghosts {
+		ghost.status = status
 	}
 }
 
-func makeMove(oldRow, oldCol int, direction string) (newRow, newCol int) {
+func (pillTimer *PillTimer) timeLeft() time.Duration {
+	remainingTime := pillTimer.end.Sub(time.Now())
+	if remainingTime > 0 {
+		return remainingTime
+	} else {
+		return 0
+	}
+}
+
+func makeMove(oldRow, oldCol int, direction string) (newRow, newCol int, validMove bool) {
 	newRow, newCol = oldRow, oldCol
 
 	switch direction {
@@ -98,10 +149,12 @@ func makeMove(oldRow, oldCol int, direction string) (newRow, newCol int) {
 		}
 	}
 
+	validMove = true
 	if maze[newRow][newCol] == '#' {
 		newRow = oldRow
 		newCol = oldCol
+		validMove = false
 	}
 
-	return newRow, newCol
+	return newRow, newCol, validMove
 }

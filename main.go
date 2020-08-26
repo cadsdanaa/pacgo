@@ -9,17 +9,20 @@ import (
 )
 
 type Config struct {
-	Player   string `json:"player"`
-	Ghost    string `json:"ghost"`
-	Wall     string `json:"wall"`
-	Dot      string `json:"dot"`
-	Pill     string `json:"pill"`
-	Death    string `json:"death"`
-	Space    string `json:"space"`
-	UseEmoji bool   `json:"use_emoji"`
+	Player              string        `json:"player"`
+	Wall                string        `json:"wall"`
+	Dot                 string        `json:"dot"`
+	Pill                string        `json:"pill"`
+	Death               string        `json:"death"`
+	Space               string        `json:"space"`
+	Ghost               string        `json:"ghost"`
+	BlueGhost           string        `json:"blue_ghost"`
+	PillDurationSeconds time.Duration `json:"pill_duration"`
+	UseEmoji            bool          `json:"use_emoji"`
 }
 
 var Cfg Config
+var previousDirection string
 
 func main() {
 	Initialize()
@@ -56,21 +59,22 @@ func main() {
 			if inp == "ESC" {
 				Lives = 0
 			}
-			MovePlayer(inp)
+			validMove := MovePlayer(inp)
+			if validMove {
+				previousDirection = inp
+			}
 		default:
+			MovePlayer(previousDirection)
 		}
 
 		MoveGhosts()
 
 		for _, ghost := range ghosts {
-			if Player.row == ghost.row && Player.col == ghost.col {
-				Lives -= 1
-				if Lives != 0 {
-					moveCursor(Player.row, Player.col)
-					fmt.Print(Cfg.Death)
-					time.Sleep(2000 * time.Millisecond)
-					moveCursor(len(maze)+2, 0)
-					Player.row, Player.col = Player.startRow, Player.startCol
+			if Player.row == ghost.position.row && Player.col == ghost.position.col {
+				if ghost.status == Normal {
+					handleNormalGhostContact()
+				} else {
+					handleBlueGhostContact(ghost)
 				}
 			}
 		}
@@ -86,6 +90,22 @@ func main() {
 
 		time.Sleep(200 * time.Millisecond)
 	}
+}
+
+func handleNormalGhostContact() {
+	Lives -= 1
+	if Lives != 0 {
+		moveCursor(Player.row, Player.col)
+		fmt.Print(Cfg.Death)
+		time.Sleep(2000 * time.Millisecond)
+		moveCursor(len(maze)+2, 0)
+		Player.row, Player.col = Player.startRow, Player.startCol
+	}
+}
+func handleBlueGhostContact(ghost *ghost) {
+	ghost.position.row, ghost.position.col = ghost.position.startRow, ghost.position.startCol
+	ghost.status = Normal
+	score += 100
 }
 
 func loadConfig(file string) error {

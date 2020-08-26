@@ -6,5 +6,7 @@
   "pill": " ⦿",
   "death": "😵",
   "space": "  ",
+  "blue_ghost": "🥶",
+  "pill_duration": 6,
   "use_emoji": true
 }
