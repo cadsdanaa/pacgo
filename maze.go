@@ -2,12 +2,25 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"github.com/danicat/simpleansi"
-	"math/rand"
 	"os"
 	"time"
 )
+
+type Config struct {
+	Player              string        `json:"player"`
+	Wall                string        `json:"wall"`
+	Dot                 string        `json:"dot"`
+	Pill                string        `json:"pill"`
+	Death               string        `json:"death"`
+	Space               string        `json:"space"`
+	Ghost               string        `json:"ghost"`
+	BlueGhost           string        `json:"blue_ghost"`
+	PillDurationSeconds time.Duration `json:"pill_duration"`
+	UseEmoji            bool          `json:"use_emoji"`
+}
 
 type sprite struct {
 	row      int
@@ -16,24 +29,13 @@ type sprite struct {
 	startCol int
 }
 
-type GhostStatus string
-
-const (
-	Normal GhostStatus = "Normal"
-	Blue   GhostStatus = "Blue"
-)
-
-type ghost struct {
-	position sprite
-	status   GhostStatus
-}
-
 var maze []string
 var ghosts []*ghost
 var score int
 var Player sprite
 var Lives = 3
 var Dots int
+var Cfg Config
 
 func LoadMaze(file string) error {
 	f, err := os.Open(file)
@@ -49,21 +51,6 @@ func LoadMaze(file string) error {
 	}
 	loadSprites()
 	return nil
-}
-
-func loadSprites() {
-	for row, line := range maze {
-		for col, character := range line {
-			switch character {
-			case 'P':
-				Player = sprite{row, col, row, col}
-			case 'G':
-				ghosts = append(ghosts, &ghost{sprite{row, col, row, col}, Normal})
-			case '.', 'X':
-				Dots++
-			}
-		}
-	}
 }
 
 func PrintMaze() {
@@ -98,22 +85,59 @@ func PrintMaze() {
 	fmt.Println("Score: ", score, "\tLives: ", getLivesIcon(), "\tPower Pill Time: ", pillTimer.timeLeft().Truncate(time.Second/10))
 }
 
-func MoveGhosts() {
-	for _, ghost := range ghosts {
-		direction := ghostMovement()
-		ghost.position.row, ghost.position.col, _ = makeMove(ghost.position.row, ghost.position.col, direction)
-	}
+func RemoveDot(row, col int) {
+	maze[row] = maze[row][0:col] + " " + maze[row][col+1:]
 }
 
-func ghostMovement() string {
-	direction := rand.Intn(4)
-	move := map[int]string{
-		0: "UP",
-		1: "DOWN",
-		2: "LEFT",
-		3: "RIGHT",
+func makeMove(oldRow, oldCol int, direction string) (newRow, newCol int, validMove bool) {
+	newRow, newCol = oldRow, oldCol
+
+	switch direction {
+	case "UP":
+		newRow = newRow - 1
+		if newRow < 0 {
+			newRow = len(maze) - 1
+		}
+	case "DOWN":
+		newRow = newRow + 1
+		if newRow == len(maze) {
+			newRow = 0
+		}
+	case "RIGHT":
+		newCol = newCol + 1
+		if newCol == len(maze[0]) {
+			newCol = 0
+		}
+	case "LEFT":
+		newCol = newCol - 1
+		if newCol < 0 {
+			newCol = len(maze[0]) - 1
+		}
 	}
-	return move[direction]
+
+	validMove = true
+	if maze[newRow][newCol] == '#' {
+		newRow = oldRow
+		newCol = oldCol
+		validMove = false
+	}
+
+	return newRow, newCol, validMove
+}
+
+func loadSprites() {
+	for row, line := range maze {
+		for col, character := range line {
+			switch character {
+			case 'P':
+				Player = sprite{row, col, row, col}
+			case 'G':
+				ghosts = append(ghosts, &ghost{sprite{row, col, row, col}, Normal})
+			case '.', 'X':
+				Dots++
+			}
+		}
+	}
 }
 
 func moveCursor(row, col int) {
@@ -130,4 +154,19 @@ func getLivesIcon() string {
 		currentLives += Cfg.Player
 	}
 	return currentLives
+}
+
+func LoadMazeConfig(file string) error {
+	f, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	decoder := json.NewDecoder(f)
+	err = decoder.Decode(&Cfg)
+	if err != nil {
+		return err
+	}
+	return nil
 }

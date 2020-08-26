@@ -37,7 +37,22 @@ func Cleanup() {
 	}
 }
 
-func ReadInput() (string, error) {
+func ReadUserInput() chan string {
+	input := make(chan string)
+	go func(ch chan<- string) {
+		for {
+			input, err := translateInput()
+			if err != nil {
+				ch <- "ESC"
+				log.Fatal("Failed to read input")
+			}
+			ch <- input
+		}
+	}(input)
+	return input
+}
+
+func translateInput() (string, error) {
 	buffer := make([]byte, 100)
 	cnt, err := os.Stdin.Read(buffer)
 	if err != nil {
@@ -64,33 +79,9 @@ func ReadInput() (string, error) {
 	return "", nil
 }
 
-func MovePlayer(direction string) bool {
-	var validMove bool
-	Player.row, Player.col, validMove = makeMove(Player.row, Player.col, direction)
-
-	removeDot := func(row, col int) {
-		maze[Player.row] = maze[Player.row][0:Player.col] + " " + maze[Player.row][Player.col+1:]
-	}
-
-	switch maze[Player.row][Player.col] {
-	case '.':
-		Dots--
-		score++
-		removeDot(Player.row, Player.col)
-		go playPillSound()
-	case 'X':
-		Dots--
-		score += 10
-		removeDot(Player.row, Player.col)
-		go playPillSound()
-		go processPill()
-	}
-	return validMove
-}
-
 func processPill() {
 	pillMutex.Lock()
-	updateGhosts(ghosts, Blue)
+	updateGhostsStatus(ghosts, Blue)
 	pillTime := time.Second * Cfg.PillDurationSeconds
 	if pillTimer.timeLeft() > 0 {
 		pillTimer.timer.Stop()
@@ -104,16 +95,8 @@ func processPill() {
 	<-pillTimer.timer.C
 	pillMutex.Lock()
 	pillTimer.timer.Stop()
-	updateGhosts(ghosts, Normal)
+	updateGhostsStatus(ghosts, Normal)
 	pillMutex.Unlock()
-}
-
-func updateGhosts(ghosts []*ghost, status GhostStatus) {
-	ghostStatusMutex.Lock()
-	defer ghostStatusMutex.Unlock()
-	for _, ghost := range ghosts {
-		ghost.status = status
-	}
 }
 
 func (pillTimer *PillTimer) timeLeft() time.Duration {
@@ -123,40 +106,4 @@ func (pillTimer *PillTimer) timeLeft() time.Duration {
 	} else {
 		return 0
 	}
-}
-
-func makeMove(oldRow, oldCol int, direction string) (newRow, newCol int, validMove bool) {
-	newRow, newCol = oldRow, oldCol
-
-	switch direction {
-	case "UP":
-		newRow = newRow - 1
-		if newRow < 0 {
-			newRow = len(maze) - 1
-		}
-	case "DOWN":
-		newRow = newRow + 1
-		if newRow == len(maze) {
-			newRow = 0
-		}
-	case "RIGHT":
-		newCol = newCol + 1
-		if newCol == len(maze[0]) {
-			newCol = 0
-		}
-	case "LEFT":
-		newCol = newCol - 1
-		if newCol < 0 {
-			newCol = len(maze[0]) - 1
-		}
-	}
-
-	validMove = true
-	if maze[newRow][newCol] == '#' {
-		newRow = oldRow
-		newCol = oldCol
-		validMove = false
-	}
-
-	return newRow, newCol, validMove
 }
