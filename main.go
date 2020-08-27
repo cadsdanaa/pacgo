@@ -45,6 +45,7 @@ func main() {
 				fmt.Print(Cfg.Death)
 				moveCursor(len(maze)+2, 0)
 			}
+			PrintMaze()
 			break
 		}
 

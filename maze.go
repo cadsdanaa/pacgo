@@ -29,7 +29,9 @@ type sprite struct {
 	startCol int
 }
 
-var maze []string
+type Maze []string
+
+var maze Maze
 var ghosts []*ghost
 var score int
 var Player sprite
@@ -87,6 +89,14 @@ func PrintMaze() {
 
 func RemoveDot(row, col int) {
 	maze[row] = maze[row][0:col] + " " + maze[row][col+1:]
+}
+
+func (maze Maze) toGrid() [][]rune {
+	grid := make([][]rune, len(maze))
+	for i, _ := range grid {
+		grid[i] = []rune(maze[i])
+	}
+	return grid
 }
 
 func makeMove(oldRow, oldCol int, direction string) (newRow, newCol int, validMove bool) {
